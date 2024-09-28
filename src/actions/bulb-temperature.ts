@@ -50,9 +50,31 @@ export class BulbTemperature extends SingletonAction {
     let { value = 0, incrementBy, bulbIp } = ev.payload.settings;
     const { ticks } = ev.payload; //negative ticks on ccw rotation
     incrementBy ??= ev.payload.settings.incrementBy || 1;
-    value = Math.max(0, Math.min(100, value + ticks * incrementBy));
 
-    ev.action.setFeedback({ value, indicator: { value } });
+    // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
+    const wl = new WizLight(bulbIp);
+    const { result } = await wl.getStatus();
+    console.log(result);
+
+    const LAMP_WARMEST_K = 2700;
+    const LAMP_COOLEST_K = 6500;
+
+    value = Math.max(LAMP_WARMEST_K, Math.min(LAMP_COOLEST_K, value + ticks * incrementBy));
+    const normalizedValue = ((value - LAMP_WARMEST_K) / (LAMP_COOLEST_K - LAMP_WARMEST_K)) * 100;
+    const category =
+      normalizedValue <= 25
+        ? 'Warmest'
+        : normalizedValue <= 50
+        ? 'Warm'
+        : normalizedValue <= 75
+        ? 'Neutral'
+        : 'Cool';
+
+    ev.action.setFeedback({
+      value: normalizedValue.toFixed(0) + '%',
+      indicator: { value: normalizedValue.toFixed(0) },
+    });
+    ev.action.setTitle(`${category} (${value}K)`);
     ev.action.setSettings({ ...ev.payload.settings, value, incrementBy, bulbIp });
     this.updateUI(ev);
   }
