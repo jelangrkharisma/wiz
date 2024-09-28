@@ -1,0 +1,59 @@
+{
+  "Name": "wiz",
+  "Version": "0.1.0.0",
+  "Author": "jrmdhn",
+  "Actions": [
+    {
+      "Name": "Counter",
+      "UUID": "com.jrmdhn.wiz.increment",
+      "Icon": "imgs/actions/counter/icon",
+      "Tooltip": "Displays a count, which increments by one on press.",
+      "PropertyInspectorPath": "ui/increment-counter.html",
+      "Controllers": ["Keypad", "Encoder"],
+      "States": [
+        {
+          "Image": "imgs/actions/counter/key",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Decrement",
+      "UUID": "com.jrmdhn.wiz.decrement",
+      "Icon": "imgs/actions/counter/icon",
+      "Tooltip": "Displays a count, which decreased by one on press.",
+      "PropertyInspectorPath": "ui/decrement-counter.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/counter/key",
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ],
+  "Category": "wiz",
+  "CategoryIcon": "imgs/plugin/category-icon",
+  "CodePath": "bin/plugin.js",
+  "Description": "custom wizlight integration",
+  "Icon": "imgs/plugin/marketplace",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.4"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.15"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "UUID": "com.jrmdhn.wiz"
+}
