@@ -9,6 +9,7 @@
       "Icon": "imgs/actions/bulb",
       "Tooltip": "Control Bulb Temperature with the Knob",
       "PropertyInspectorPath": "ui/bulb-temperature.html",
+      "DisableAutomaticStates": true,
       "Controllers": ["Keypad", "Encoder"],
       "States": [
         {

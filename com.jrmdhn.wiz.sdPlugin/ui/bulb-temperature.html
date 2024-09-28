@@ -7,9 +7,14 @@
   </head>
 
   <body>
-    <!--
-        Learn more about property inspector components at https://sdpi-components.dev/docs/components
-    -->
+    <sdpi-item label="Bulb IP">
+      <sdpi-textfield
+        setting="bulbIp"
+        pattern="\b((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\b"
+        placeholder="192.168.1.100"
+      >
+      </sdpi-textfield>
+    </sdpi-item>
     <sdpi-item label="Increment By">
       <sdpi-range
         setting="incrementBy"
