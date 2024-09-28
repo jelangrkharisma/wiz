@@ -11,6 +11,15 @@
       "PropertyInspectorPath": "ui/bulb-temperature.html",
       "DisableAutomaticStates": true,
       "Controllers": ["Keypad", "Encoder"],
+      "Encoder": {
+        "layout": "$B2",
+        "TriggerDescription": {
+          "Push": "Toggle Bulb",
+          "Rotate": "Adjust Light Temperature",
+          "Touch": "Toggle Bulb",
+          "LongTouch": "Force Turn On"
+        }
+      },
       "States": [
         {
           "Image": "imgs/actions/bulb",
@@ -23,7 +32,7 @@
       ]
     }
   ],
-  "Category": "wiz",
+  "Category": "Wiz Light Control",
   "CategoryIcon": "imgs/plugin/category-icon",
   "CodePath": "bin/plugin.js",
   "Description": "custom wizlight integration",

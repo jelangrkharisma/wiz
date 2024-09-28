@@ -1,1 +1,1 @@
-export const DEFAULT_BULB_TEMP_VALUE = 50;
+export const DEFAULT_BULB_TEMP_VALUE = 0;
