@@ -1,1 +1,3 @@
 export const DEFAULT_BULB_TEMP_VALUE = 0;
+export const BULB_WARMEST_COLOR_IN_K = 2700;
+export const BULB_COOLEST_COLOR_IN_K = 6500;

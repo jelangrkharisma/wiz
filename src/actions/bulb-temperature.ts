@@ -2,12 +2,10 @@ import {
   action,
   DialDownEvent,
   DialRotateEvent,
-  DialUpEvent,
   DidReceiveSettingsEvent,
   JsonObject,
   KeyDownEvent,
   KeyUpEvent,
-  PropertyInspectorDidAppearEvent,
   SingletonAction,
   TouchTapEvent,
   WillAppearEvent,
@@ -15,7 +13,7 @@ import {
 
 import { Actions } from '.';
 import { DEFAULT_BULB_TEMP_VALUE } from '../utils/constants';
-import { ILightProps, WizLight } from 'wiz-light';
+import { WizLight } from 'wiz-light';
 
 type BulbTemperatureSettings = {
   value: number;
@@ -41,20 +39,17 @@ export class BulbTemperature extends SingletonAction {
     });
     this.updateUI(ev);
   }
+  override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<JsonObject>): Promise<void> {
+    this.updateUI(ev);
+  }
 
   override async onKeyUp(ev: KeyUpEvent<BulbTemperatureSettings>): Promise<void> {
     this.toggleBulb(ev);
   }
-
   override async onDialRotate(ev: DialRotateEvent<BulbTemperatureSettings>): Promise<void> {
     let { value = 0, incrementBy, bulbIp } = ev.payload.settings;
     const { ticks } = ev.payload; //negative ticks on ccw rotation
-    incrementBy ??= ev.payload.settings.incrementBy || 1;
-
-    // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
-    const wl = new WizLight(bulbIp);
-    const { result } = await wl.getStatus();
-    console.log(result);
+    incrementBy ??= ev.payload.settings.incrementBy || 100;
 
     const LAMP_WARMEST_K = 2700;
     const LAMP_COOLEST_K = 6500;
@@ -70,6 +65,29 @@ export class BulbTemperature extends SingletonAction {
         ? 'Neutral'
         : 'Cool';
 
+    try {
+      const { bulbIp } = ev.payload.settings;
+      // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
+      const wl = new WizLight(bulbIp);
+      const { result } = await wl.getStatus();
+      console.log(result); // {mac: 'cc---fc', rssi: -57, state: true, sceneId: 0, temp: 6500}
+
+      const response = await wl.setLightProps({
+        // @ts-ignore: need to update wizlight package to handle temp, old packages use 'w' instead of 'temp' attribute
+        temp: result.temp + ticks * incrementBy,
+      });
+      if (response) {
+        // successful state changes
+        ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: result.state });
+        this.updateUI(ev);
+      } else {
+        ev.action.showAlert();
+        throw new Error('failed to change bulb state');
+      }
+    } catch (error) {
+      ev.action.showAlert();
+    }
+
     ev.action.setFeedback({
       value: normalizedValue.toFixed(0) + '%',
       indicator: { value: normalizedValue.toFixed(0) },
@@ -78,7 +96,6 @@ export class BulbTemperature extends SingletonAction {
     ev.action.setSettings({ ...ev.payload.settings, value, incrementBy, bulbIp });
     this.updateUI(ev);
   }
-
   override async onTouchTap(ev: TouchTapEvent<BulbTemperatureSettings>): Promise<void> {
     this.toggleBulb(ev);
   }
@@ -105,20 +122,21 @@ export class BulbTemperature extends SingletonAction {
         ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: result.state });
         this.updateUI(ev);
       } else {
+        ev.action.showAlert();
         throw new Error('failed to change bulb state');
       }
     } catch (error) {
+      await ev.action.showAlert();
       console.log(error);
     }
   }
-
   async updateUI(ev: any) {
     const { bulbIp } = ev.payload.settings;
     // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
     const wl = new WizLight(bulbIp);
     const { result } = await wl.getStatus();
     ev.action.setImage(
-      ev.payload.settings.isTurnedOn ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg'
+      ev.payload.settings.isTurnedOn ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb'
     );
 
     if (ev.action.isDial()) {
