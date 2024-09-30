@@ -10,9 +10,13 @@ import {
   TouchTapEvent,
   WillAppearEvent,
 } from '@elgato/streamdeck';
-
 import { Actions } from '.';
-import { DEFAULT_BULB_TEMP_VALUE } from '../utils/constants';
+import {
+  BULB_COOLEST_COLOR_IN_K,
+  BULB_WARMEST_COLOR_IN_K,
+  DEFAULT_BULB_TEMP_VALUE,
+} from '../utils/constants';
+import { getTemperatureCategory } from '../utils/getTemperatureCategory';
 import { WizLight } from 'wiz-light';
 import { BulbEvent } from './types';
 
@@ -25,67 +29,124 @@ type BulbTemperatureSettings = {
 
 @action({ UUID: Actions.BulbTemperature })
 export class BulbTemperature extends SingletonAction {
+  private async createWizLight(bulbIp: string): Promise<WizLight<string> | null> {
+    if (!bulbIp) {
+      console.error('Bulb IP is not defined');
+      return null;
+    }
+    try {
+      // @ts-ignore: wiz-light package typing issue
+      return new WizLight(bulbIp);
+    } catch (error) {
+      console.error('Failed to create WizLight instance:', error);
+      return null;
+    }
+  }
+  private async updateUI(ev: any): Promise<void> {
+    const { bulbIp } = ev.payload.settings;
+    const wl = await this.createWizLight(bulbIp);
+    if (!wl) return;
+
+    try {
+      const { result } = await wl.getStatus();
+      ev.action.setImage(result.state ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb');
+      if (ev.action.isDial()) {
+        ev.action.setFeedback({
+          icon: result.state ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update UI:', error);
+      ev.action.showAlert();
+    }
+  }
+  private async toggleBulb(ev: BulbEvent): Promise<void> {
+    const { bulbIp } = ev.payload.settings;
+    const wl = await this.createWizLight(bulbIp);
+    if (!wl) return;
+
+    try {
+      const { result } = await wl.getStatus();
+      const response = await wl.setLightProps({ state: !result.state });
+      if (!response) throw new Error('Failed to toggle bulb state');
+
+      ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: !result.state });
+      if ('setState' in ev.action) {
+        ev.action.setState(Number(!result.state));
+      }
+      await this.updateUI(ev);
+    } catch (error) {
+      console.error('Failed to toggle bulb:', error);
+      ev.action.showAlert();
+    }
+  }
+
   override async onWillAppear(ev: WillAppearEvent<BulbTemperatureSettings>): Promise<void> {
-    // Verify that the action is a dial so we can call setFeedback.
     if (!ev.action.isDial()) return;
 
+    const value = ev.payload.settings.value || DEFAULT_BULB_TEMP_VALUE;
     ev.action.setFeedbackLayout('$B2');
     ev.action.setFeedback({
       title: 'Color Temperature',
-      value: `${ev.payload.settings.value || DEFAULT_BULB_TEMP_VALUE}`,
+      value: `${value}`,
       indicator: {
-        value: ev.payload.settings.value || DEFAULT_BULB_TEMP_VALUE,
+        value,
         bar_bg_c: '0:#f5d272,0.5:#ffffff,1:#15a3e8',
       },
     });
-    this.updateUI(ev);
+    await this.updateUI(ev);
   }
+
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<JsonObject>): Promise<void> {
-    this.updateUI(ev);
+    await this.updateUI(ev);
   }
 
   override async onKeyUp(ev: KeyUpEvent<BulbTemperatureSettings>): Promise<void> {
-    this.toggleBulb(ev);
+    await this.toggleBulb(ev);
   }
+
+  override async onTouchTap(ev: TouchTapEvent<BulbTemperatureSettings>): Promise<void> {
+    await this.toggleBulb(ev);
+  }
+
+  override async onDialDown(ev: DialDownEvent<BulbTemperatureSettings>): Promise<void> {
+    await this.toggleBulb(ev);
+  }
+
   override async onDialRotate(ev: DialRotateEvent<BulbTemperatureSettings>): Promise<void> {
-    let { value = 0, incrementBy, bulbIp } = ev.payload.settings;
-    const { ticks } = ev.payload; //negative ticks on ccw rotation
-    incrementBy ??= ev.payload.settings.incrementBy || 100;
+    let { value = 0, incrementBy = 100, bulbIp } = ev.payload.settings;
+    const { ticks } = ev.payload;
 
-    const LAMP_WARMEST_K = 2700;
-    const LAMP_COOLEST_K = 6500;
+    // Constrain value within limits
+    value = Math.max(
+      BULB_WARMEST_COLOR_IN_K,
+      Math.min(BULB_COOLEST_COLOR_IN_K, value + ticks * incrementBy)
+    );
+    const normalizedValue =
+      ((value - BULB_WARMEST_COLOR_IN_K) / (BULB_COOLEST_COLOR_IN_K - BULB_WARMEST_COLOR_IN_K)) *
+      100;
 
-    value = Math.max(LAMP_WARMEST_K, Math.min(LAMP_COOLEST_K, value + ticks * incrementBy));
-    const normalizedValue = ((value - LAMP_WARMEST_K) / (LAMP_COOLEST_K - LAMP_WARMEST_K)) * 100;
-    const category =
-      normalizedValue <= 25
-        ? 'Warmest'
-        : normalizedValue <= 50
-        ? 'Warm'
-        : normalizedValue <= 75
-        ? 'Neutral'
-        : 'Cool';
+    const category = getTemperatureCategory(normalizedValue);
+
+    const wl = await this.createWizLight(bulbIp);
+    if (!wl) return;
 
     try {
-      const { bulbIp } = ev.payload.settings;
-      // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
-      const wl = new WizLight(bulbIp);
       const { result } = await wl.getStatus();
-      console.log(result); // {mac: 'cc---fc', rssi: -57, state: true, sceneId: 0, temp: 6500}
+      // @ts-expect-error: need to update wl types
+      const response = await wl.setLightProps({ temp: value });
 
-      const response = await wl.setLightProps({
-        // @ts-ignore: need to update wizlight package to handle temp, old packages use 'w' instead of 'temp' attribute
-        temp: result.temp + ticks * incrementBy,
+      if (!response) throw new Error('Failed to change bulb state');
+
+      ev.action.setSettings({
+        ...ev.payload.settings,
+        value,
+        incrementBy,
+        isTurnedOn: result.state,
       });
-      if (response) {
-        // successful state changes
-        ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: result.state });
-        this.updateUI(ev);
-      } else {
-        ev.action.showAlert();
-        throw new Error('failed to change bulb state');
-      }
+      this.updateUI(ev);
     } catch (error) {
+      console.error(error);
       ev.action.showAlert();
     }
 
@@ -94,57 +155,5 @@ export class BulbTemperature extends SingletonAction {
       indicator: { value: normalizedValue.toFixed(0) },
     });
     ev.action.setTitle(`${category} (${value}K)`);
-    ev.action.setSettings({ ...ev.payload.settings, value, incrementBy, bulbIp });
-    this.updateUI(ev);
-  }
-  override async onTouchTap(ev: TouchTapEvent<BulbTemperatureSettings>): Promise<void> {
-    this.toggleBulb(ev);
-  }
-  override async onDialDown(ev: DialDownEvent<BulbTemperatureSettings>): Promise<void> {
-    this.toggleBulb(ev);
-  }
-
-  async toggleBulb(ev: BulbEvent): Promise<void> {
-    try {
-      const { bulbIp } = ev.payload.settings;
-      // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
-      const wl = new WizLight(bulbIp);
-      const { result } = await wl.getStatus();
-      const response = await wl.setLightProps({
-        state: !result.state,
-      });
-      if (response) {
-        // successful state changes
-        ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: result.state });
-
-        if ('setState' in ev.action) {
-          // setState only available on key events
-          ev.action.setState(Number(Boolean(result.state)));
-        }
-
-        this.updateUI(ev);
-      } else {
-        ev.action.showAlert();
-        throw new Error('failed to change bulb state');
-      }
-    } catch (error) {
-      await ev.action.showAlert();
-      console.log(error);
-    }
-  }
-  async updateUI(ev: any) {
-    const { bulbIp } = ev.payload.settings;
-    // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
-    const wl = new WizLight(bulbIp);
-    const { result } = await wl.getStatus();
-    ev.action.setImage(
-      ev.payload.settings.isTurnedOn ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb'
-    );
-
-    if (ev.action.isDial()) {
-      ev.action.setFeedback({
-        icon: result.state ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg',
-      });
-    }
   }
 }
