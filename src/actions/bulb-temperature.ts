@@ -17,8 +17,8 @@ import {
   DEFAULT_BULB_TEMP_VALUE,
 } from '../utils/constants';
 import { getTemperatureCategory } from '../utils/getTemperatureCategory';
-import { WizLight } from 'wiz-light';
-import { BulbEvent } from './types';
+import { IFullStateResponse, WizLight } from 'wiz-light';
+import { BulbEvent, IFullStateResponseWithTemp } from './types';
 
 type BulbTemperatureSettings = {
   value: number;
@@ -48,11 +48,21 @@ export class BulbTemperature extends SingletonAction {
     if (!wl) return;
 
     try {
-      const { result } = await wl.getStatus();
+      const { result }: IFullStateResponseWithTemp = await wl.getStatus();
       ev.action.setImage(result.state ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb');
+      const value = result.temp;
       if (ev.action.isDial()) {
+        const normalizedValue =
+          ((value - BULB_WARMEST_COLOR_IN_K) /
+            (BULB_COOLEST_COLOR_IN_K - BULB_WARMEST_COLOR_IN_K)) *
+          100;
         ev.action.setFeedback({
           icon: result.state ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg',
+        });
+
+        ev.action.setFeedback({
+          value: `${result.temp}K`,
+          indicator: { value: normalizedValue.toFixed(0) },
         });
       }
     } catch (error) {
@@ -122,11 +132,6 @@ export class BulbTemperature extends SingletonAction {
       BULB_WARMEST_COLOR_IN_K,
       Math.min(BULB_COOLEST_COLOR_IN_K, value + ticks * incrementBy)
     );
-    const normalizedValue =
-      ((value - BULB_WARMEST_COLOR_IN_K) / (BULB_COOLEST_COLOR_IN_K - BULB_WARMEST_COLOR_IN_K)) *
-      100;
-
-    const category = getTemperatureCategory(normalizedValue);
 
     const wl = await this.createWizLight(bulbIp);
     if (!wl) return;
@@ -149,11 +154,5 @@ export class BulbTemperature extends SingletonAction {
       console.error(error);
       ev.action.showAlert();
     }
-
-    ev.action.setFeedback({
-      value: normalizedValue.toFixed(0) + '%',
-      indicator: { value: normalizedValue.toFixed(0) },
-    });
-    ev.action.setTitle(`${category} (${value}K)`);
   }
 }
