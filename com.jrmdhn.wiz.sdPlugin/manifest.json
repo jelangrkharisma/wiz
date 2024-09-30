@@ -4,7 +4,7 @@
   "Author": "jrmdhn",
   "Actions": [
     {
-      "Name": "Bulb Temperature",
+      "Name": "Bulb Temperature Control",
       "UUID": "com.jrmdhn.wiz.bulb-temperature",
       "Icon": "imgs/actions/bulb",
       "Tooltip": "Control Bulb Temperature with the Knob",

@@ -1,6 +1,4 @@
-export interface IWizLight {
-  setLightStatus(status: IStatus): Promise<IStatus>;
-  setLightProps(props: ILightProps): Promise<IStatus>;
-  getStatus(): Promise<IFullStateResponse>;
-  destroy(): void;
-}
+export type BulbEvent =
+  | TouchTapEvent<BulbTemperatureSettings>
+  | KeyUpEvent<BulbTemperatureSettings>
+  | DialDownEvent<BulbTemperatureSettings>;

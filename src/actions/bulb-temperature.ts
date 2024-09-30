@@ -14,6 +14,7 @@ import {
 import { Actions } from '.';
 import { DEFAULT_BULB_TEMP_VALUE } from '../utils/constants';
 import { WizLight } from 'wiz-light';
+import { BulbEvent } from './types';
 
 type BulbTemperatureSettings = {
   value: number;
@@ -103,12 +104,7 @@ export class BulbTemperature extends SingletonAction {
     this.toggleBulb(ev);
   }
 
-  async toggleBulb(
-    ev:
-      | TouchTapEvent<BulbTemperatureSettings>
-      | KeyUpEvent<BulbTemperatureSettings>
-      | DialDownEvent<BulbTemperatureSettings>
-  ): Promise<void> {
+  async toggleBulb(ev: BulbEvent): Promise<void> {
     try {
       const { bulbIp } = ev.payload.settings;
       // @ts-ignore: weird WizLight constructor typing. it only allow direct string input instead of variables
@@ -120,6 +116,12 @@ export class BulbTemperature extends SingletonAction {
       if (response) {
         // successful state changes
         ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: result.state });
+
+        if ('setState' in ev.action) {
+          // setState only available on key events
+          ev.action.setState(Number(Boolean(result.state)));
+        }
+
         this.updateUI(ev);
       } else {
         ev.action.showAlert();
