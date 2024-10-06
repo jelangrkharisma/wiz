@@ -30,6 +30,34 @@
           "TitleAlignment": "middle"
         }
       ]
+    },
+    {
+      "Name": "Bulb Dimmer Control",
+      "UUID": "com.jrmdhn.wiz.bulb-dimmer",
+      "Icon": "imgs/actions/bulb",
+      "Tooltip": "Control Bulb Temperature with the Knob",
+      "PropertyInspectorPath": "ui/bulb-dimmer.html",
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad", "Encoder"],
+      "Encoder": {
+        "layout": "$B1",
+        "TriggerDescription": {
+          "Push": "Toggle Bulb",
+          "Rotate": "Adjust Bulb Brightness",
+          "Touch": "Toggle Bulb",
+          "LongTouch": "Force Turn On"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/actions/bulb",
+          "TitleAlignment": "middle"
+        },
+        {
+          "Image": "imgs/actions/bulb-solid",
+          "TitleAlignment": "middle"
+        }
+      ]
     }
   ],
   "Category": "Wiz Light Control",

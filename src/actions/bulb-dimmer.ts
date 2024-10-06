@@ -13,6 +13,8 @@ import {
 import { Actions } from '.';
 import {
   BULB_COOLEST_COLOR_IN_K,
+  BULB_MAX_BRIGHTNESS,
+  BULB_MIN_BRIGHTNESS,
   BULB_WARMEST_COLOR_IN_K,
   DEFAULT_BULB_TEMP_VALUE,
 } from '../utils/constants';
@@ -20,15 +22,15 @@ import { getTemperatureCategory } from '../utils/getTemperatureCategory';
 import { IFullStateResponse, WizLight } from 'wiz-light';
 import { BulbEvent, IFullStateResponseWithTemp } from './types';
 
-type BulbTemperatureSettings = {
+type BulbDimmerSettings = {
   value: number;
   bulbIp: string;
   incrementBy: number;
   isTurnedOn: boolean;
 };
 
-@action({ UUID: Actions.BulbTemperature })
-export class BulbTemperature extends SingletonAction {
+@action({ UUID: Actions.BulbDimmer })
+export class BulbDimmer extends SingletonAction {
   private async createWizLight(bulbIp: string): Promise<WizLight<string> | null> {
     if (!bulbIp) {
       console.error('Bulb IP is not defined');
@@ -52,17 +54,13 @@ export class BulbTemperature extends SingletonAction {
       ev.action.setImage(result.state ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb');
       const value = result.temp;
       if (ev.action.isDial()) {
-        const normalizedValue =
-          ((value - BULB_WARMEST_COLOR_IN_K) /
-            (BULB_COOLEST_COLOR_IN_K - BULB_WARMEST_COLOR_IN_K)) *
-          100;
         ev.action.setFeedback({
           icon: result.state ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg',
         });
 
         ev.action.setFeedback({
-          value: `${result.temp}K`,
-          indicator: { value: normalizedValue.toFixed(0) },
+          value: `${result.dimming}%`,
+          indicator: { value: result.dimming },
         });
       }
     } catch (error) {
@@ -91,18 +89,12 @@ export class BulbTemperature extends SingletonAction {
     }
   }
 
-  override async onWillAppear(ev: WillAppearEvent<BulbTemperatureSettings>): Promise<void> {
+  override async onWillAppear(ev: WillAppearEvent<BulbDimmerSettings>): Promise<void> {
     if (!ev.action.isDial()) return;
 
     const value = ev.payload.settings.value || DEFAULT_BULB_TEMP_VALUE;
-    ev.action.setFeedbackLayout('$B2');
     ev.action.setFeedback({
-      title: 'Color Temperature',
       value: `${value}`,
-      indicator: {
-        value,
-        bar_bg_c: '0:#f5d272,0.5:#ffffff,1:#15a3e8',
-      },
     });
     await this.updateUI(ev);
   }
@@ -111,26 +103,26 @@ export class BulbTemperature extends SingletonAction {
     await this.updateUI(ev);
   }
 
-  override async onKeyUp(ev: KeyUpEvent<BulbTemperatureSettings>): Promise<void> {
+  override async onKeyUp(ev: KeyUpEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
 
-  override async onTouchTap(ev: TouchTapEvent<BulbTemperatureSettings>): Promise<void> {
+  override async onTouchTap(ev: TouchTapEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
 
-  override async onDialDown(ev: DialDownEvent<BulbTemperatureSettings>): Promise<void> {
+  override async onDialDown(ev: DialDownEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
 
-  override async onDialRotate(ev: DialRotateEvent<BulbTemperatureSettings>): Promise<void> {
-    let { value = 0, incrementBy = 100, bulbIp } = ev.payload.settings;
+  override async onDialRotate(ev: DialRotateEvent<BulbDimmerSettings>): Promise<void> {
+    let { value = 0, incrementBy = 1, bulbIp } = ev.payload.settings;
     const { ticks } = ev.payload;
 
     // Constrain value within limits
     value = Math.max(
-      BULB_WARMEST_COLOR_IN_K,
-      Math.min(BULB_COOLEST_COLOR_IN_K, value + ticks * incrementBy)
+      BULB_MIN_BRIGHTNESS,
+      Math.min(BULB_MAX_BRIGHTNESS, value + ticks * incrementBy)
     );
 
     const wl = await this.createWizLight(bulbIp);
@@ -140,8 +132,9 @@ export class BulbTemperature extends SingletonAction {
       const { result } = await wl.getStatus();
       const response = await wl.setLightProps({
         // @ts-expect-error: need to update wl types
-        temp: value,
-        dimming: result.dimming,
+        temp: result.temp,
+        // @ts-expect-error: need to update wl types
+        dimming: value,
       });
 
       if (!response) throw new Error('Failed to change bulb state');
