@@ -9,6 +9,7 @@ import {
   SingletonAction,
   TouchTapEvent,
   WillAppearEvent,
+  WillDisappearEvent,
 } from '@elgato/streamdeck';
 import { Actions } from '.';
 import {
@@ -16,6 +17,7 @@ import {
   BULB_MAX_BRIGHTNESS,
   BULB_MIN_BRIGHTNESS,
   BULB_WARMEST_COLOR_IN_K,
+  DEFAULT_AUTOREFRESH_INTERVAL_IN_MS,
   DEFAULT_BULB_TEMP_VALUE,
 } from '../utils/constants';
 import { getTemperatureCategory } from '../utils/getTemperatureCategory';
@@ -31,6 +33,8 @@ type BulbDimmerSettings = {
 
 @action({ UUID: Actions.BulbDimmer })
 export class BulbDimmer extends SingletonAction {
+  private updateInterval: NodeJS.Timeout | null = null;
+
   private async createWizLight(bulbIp: string): Promise<WizLight<string> | null> {
     if (!bulbIp) {
       console.error('Bulb IP is not defined');
@@ -94,6 +98,23 @@ export class BulbDimmer extends SingletonAction {
     }
   }
 
+  // auto update related methods
+  private startAutoUpdate(ev: any, interval: number = DEFAULT_AUTOREFRESH_INTERVAL_IN_MS): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval); // Clear existing interval if running
+    }
+
+    this.updateInterval = setInterval(async () => {
+      await this.updateUI(ev); // Call updateUI at regular intervals
+    }, interval);
+  }
+  private stopAutoUpdate(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+
   override async onWillAppear(ev: WillAppearEvent<BulbDimmerSettings>): Promise<void> {
     if (!ev.action.isDial()) return;
 
@@ -102,16 +123,18 @@ export class BulbDimmer extends SingletonAction {
       value: `${value}`,
     });
     await this.updateUI(ev);
+    this.startAutoUpdate(ev);
   }
-
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<JsonObject>): Promise<void> {
     await this.updateUI(ev);
+  }
+  override async onWillDisappear(ev: WillDisappearEvent<BulbDimmerSettings>): Promise<void> {
+    this.stopAutoUpdate();
   }
 
   override async onKeyUp(ev: KeyUpEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
-
   override async onTouchTap(ev: TouchTapEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
@@ -119,7 +142,6 @@ export class BulbDimmer extends SingletonAction {
   override async onDialDown(ev: DialDownEvent<BulbDimmerSettings>): Promise<void> {
     await this.toggleBulb(ev);
   }
-
   override async onDialRotate(ev: DialRotateEvent<BulbDimmerSettings>): Promise<void> {
     let { value = 0, incrementBy = 1, bulbIp } = ev.payload.settings;
     const { ticks } = ev.payload;
