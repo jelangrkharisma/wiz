@@ -4,11 +4,12 @@ import {
   KeyUpEvent,
   SingletonAction,
   WillAppearEvent,
+  WillDisappearEvent,
 } from '@elgato/streamdeck';
 import { Actions } from '.';
 import { WizLight } from 'wiz-light';
 import { BulbEvent, IFullStateResponseWithTemp } from './types';
-import { DEFAULT_BULB_TEMP_VALUE } from '../utils/constants';
+import { DEFAULT_AUTOREFRESH_INTERVAL_IN_MS, DEFAULT_BULB_TEMP_VALUE } from '../utils/constants';
 
 type BulbSetSceneSettings = {
   tempValue: number;
@@ -18,6 +19,8 @@ type BulbSetSceneSettings = {
 
 @action({ UUID: Actions.SetScene })
 export class SetScene extends SingletonAction {
+  private updateInterval: NodeJS.Timeout | null = null;
+
   private async createWizLight(bulbIp: string): Promise<WizLight<string> | null> {
     if (!bulbIp) {
       console.error('Bulb IP is not defined');
@@ -38,6 +41,9 @@ export class SetScene extends SingletonAction {
 
     try {
       const { result }: IFullStateResponseWithTemp = await wl.getStatus();
+      if ('setState' in ev.action) {
+        ev.action.setState(Number(result.state));
+      }
       ev.action.setImage(result.state ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb');
     } catch (error) {
       console.error('Failed to update UI:', error);
@@ -70,15 +76,29 @@ export class SetScene extends SingletonAction {
       ev.action.showAlert();
     }
   }
+  // auto update related methods
+  private startAutoUpdate(ev: any, interval: number = DEFAULT_AUTOREFRESH_INTERVAL_IN_MS): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval); // Clear existing interval if running
+    }
+
+    this.updateInterval = setInterval(async () => {
+      await this.updateUI(ev); // Call updateUI at regular intervals
+    }, interval);
+  }
+  private stopAutoUpdate(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
 
   override async onWillAppear(ev: WillAppearEvent<BulbSetSceneSettings>): Promise<void> {
-    if (!ev.action.isDial()) return;
-
-    const value = ev.payload.settings.tempValue || DEFAULT_BULB_TEMP_VALUE;
-    ev.action.setFeedback({
-      value: `${value}`,
-    });
     await this.updateUI(ev);
+    this.startAutoUpdate(ev);
+  }
+  override async onWillDisappear(ev: WillDisappearEvent<BulbSetSceneSettings>): Promise<void> {
+    this.stopAutoUpdate();
   }
 
   override async onDidReceiveSettings(

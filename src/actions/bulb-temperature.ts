@@ -9,6 +9,7 @@ import {
   SingletonAction,
   TouchTapEvent,
   WillAppearEvent,
+  WillDisappearEvent,
 } from '@elgato/streamdeck';
 import { Actions } from '.';
 import {
@@ -29,6 +30,8 @@ type BulbTemperatureSettings = {
 
 @action({ UUID: Actions.BulbTemperature })
 export class BulbTemperature extends SingletonAction {
+  private updateInterval: NodeJS.Timeout | null = null;
+
   private async createWizLight(bulbIp: string): Promise<WizLight<string> | null> {
     if (!bulbIp) {
       console.error('Bulb IP is not defined');
@@ -91,6 +94,23 @@ export class BulbTemperature extends SingletonAction {
     }
   }
 
+  // auto update related methods
+  private startAutoUpdate(ev: any, interval: number = 1000 * 5): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval); // Clear existing interval if running
+    }
+
+    this.updateInterval = setInterval(async () => {
+      await this.updateUI(ev); // Call updateUI at regular intervals
+    }, interval);
+  }
+  private stopAutoUpdate(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+  }
+
   override async onWillAppear(ev: WillAppearEvent<BulbTemperatureSettings>): Promise<void> {
     if (!ev.action.isDial()) return;
 
@@ -105,8 +125,11 @@ export class BulbTemperature extends SingletonAction {
       },
     });
     await this.updateUI(ev);
+    this.startAutoUpdate(ev);
   }
-
+  override async onWillDisappear(ev: WillDisappearEvent<BulbTemperatureSettings>): Promise<void> {
+    this.stopAutoUpdate();
+  }
   override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<JsonObject>): Promise<void> {
     await this.updateUI(ev);
   }
