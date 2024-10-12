@@ -51,11 +51,11 @@ export class BulbDimmer extends SingletonAction {
 
     try {
       const { result }: IFullStateResponseWithTemp = await wl.getStatus();
-      ev.action.setImage(result.state ? 'imgs/actions/bulb-solid' : 'imgs/actions/bulb');
+      ev.action.setImage(result.state ? 'imgs/actions/sun-solid' : 'imgs/actions/sun');
       const value = result.temp;
       if (ev.action.isDial()) {
         ev.action.setFeedback({
-          icon: result.state ? 'imgs/actions/bulb-solid.svg' : 'imgs/actions/bulb.svg',
+          icon: result.state ? 'imgs/actions/sun-solid.svg' : 'imgs/actions/sun.svg',
         });
 
         ev.action.setFeedback({
@@ -75,7 +75,12 @@ export class BulbDimmer extends SingletonAction {
 
     try {
       const { result } = await wl.getStatus();
-      const response = await wl.setLightProps({ state: !result.state });
+      const response = await wl.setLightProps({
+        state: !result.state,
+        dimming: result.dimming,
+        // @ts-expect-error: need to update/extends wl types
+        temp: result.temp,
+      });
       if (!response) throw new Error('Failed to toggle bulb state');
 
       ev.action.setSettings({ ...ev.payload.settings, isTurnedOn: !result.state });

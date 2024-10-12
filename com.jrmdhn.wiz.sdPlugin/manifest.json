@@ -10,7 +10,7 @@
       "Tooltip": "Control Bulb Temperature with the Knob",
       "PropertyInspectorPath": "ui/bulb-temperature.html",
       "DisableAutomaticStates": true,
-      "Controllers": ["Keypad", "Encoder"],
+      "Controllers": ["Encoder"],
       "Encoder": {
         "layout": "$B2",
         "TriggerDescription": {
@@ -34,11 +34,11 @@
     {
       "Name": "Bulb Dimmer Control",
       "UUID": "com.jrmdhn.wiz.bulb-dimmer",
-      "Icon": "imgs/actions/bulb",
+      "Icon": "imgs/actions/sun",
       "Tooltip": "Control Bulb Temperature with the Knob",
       "PropertyInspectorPath": "ui/bulb-dimmer.html",
       "DisableAutomaticStates": true,
-      "Controllers": ["Keypad", "Encoder"],
+      "Controllers": ["Encoder"],
       "Encoder": {
         "layout": "$B1",
         "TriggerDescription": {
@@ -48,6 +48,25 @@
           "LongTouch": "Force Turn On"
         }
       },
+      "States": [
+        {
+          "Image": "imgs/actions/sun",
+          "TitleAlignment": "middle"
+        },
+        {
+          "Image": "imgs/actions/sun-solid",
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Bulb Switch Control",
+      "UUID": "com.jrmdhn.wiz.set-scene",
+      "Icon": "imgs/actions/pointer",
+      "Tooltip": "Control Bulb scene with the push of a button",
+      "PropertyInspectorPath": "ui/set-scene.html",
+      "DisableAutomaticStates": true,
+      "Controllers": ["Keypad"],
       "States": [
         {
           "Image": "imgs/actions/bulb",

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <title>Bulb Scene</title>
+    <meta charset="utf-8" />
+    <script src="https://sdpi-components.dev/releases/v3/sdpi-components.js"></script>
+  </head>
+
+  <body>
+    <sdpi-item label="Bulb IP">
+      <sdpi-textfield
+        setting="bulbIp"
+        pattern="\b((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\b"
+        placeholder="192.168.1.100"
+      >
+      </sdpi-textfield>
+    </sdpi-item>
+
+    <sdpi-item label="Temperature:">
+      <sdpi-range
+        setting="tempValue"
+        min="2700"
+        max="6500"
+        step="100"
+        default="2700"
+        showlabels
+      ></sdpi-range>
+    </sdpi-item>
+
+    <sdpi-item label="Brightness:">
+      <sdpi-range
+        setting="dimmingValue"
+        min="10"
+        max="100"
+        step="10"
+        default="100"
+        showlabels
+      ></sdpi-range>
+    </sdpi-item>
+  </body>
+</html>
