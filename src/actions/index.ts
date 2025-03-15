@@ -6,6 +6,7 @@ enum ActionNamesEnum {
   BulbTemperature = 'bulb-temperature',
   BulbDimmer = 'bulb-dimmer',
   SetScene = 'set-scene',
+  BulbSwitch = 'bulb-switch',
 }
 
 // Helper function to prepend domain to action names
@@ -16,4 +17,5 @@ export const Actions = {
   BulbTemperature: withDomain(ActionNamesEnum.BulbTemperature),
   BulbDimmer: withDomain(ActionNamesEnum.BulbDimmer),
   SetScene: withDomain(ActionNamesEnum.SetScene),
+  BulbSwitch: withDomain(ActionNamesEnum.BulbSwitch),
 };
