@@ -7,7 +7,9 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.jrmdhn.wiz\"",
-    "dev": "rollup -c -w --watch.onEnd=\"streamdeck restart com.jrmdhn.wiz\""
+    "dev": "rollup -c -w --watch.onEnd=\"streamdeck restart com.jrmdhn.wiz\"",
+    "package-windows": "powershell -Command \"Compress-Archive -Path com.jrmdhn.wiz.sdPlugin -DestinationPath com.jrmdhn.wiz.zip; Rename-Item com.jrmdhn.wiz.zip com.jrmdhn.wiz.streamDeckPlugin\"",
+    "package-linux": "zip -r com.jrmdhn.wiz.zip com.jrmdhn.wiz.sdPlugin && mv com.jrmdhn.wiz.zip com.jrmdhn.wiz.streamDeckPlugin"
   },
   "type": "module",
   "devDependencies": {
