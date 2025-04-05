@@ -60,7 +60,7 @@
       ]
     },
     {
-      "Name": "Bulb Switch Control",
+      "Name": "Bulb Switch Toggle",
       "UUID": "com.jrmdhn.wiz.set-scene",
       "Icon": "imgs/actions/pointer",
       "Tooltip": "Control Bulb scene with the push of a button",

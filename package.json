@@ -1,4 +1,9 @@
 {
+  "name": "wiz",
+  "version": "1.0.0",
+  "description": "A plugin for the Stream Deck to control Wiz bulbs",
+  "author": "jelang r. kharisma <jrmdhn@gmail.com>",
+  "license": "MIT",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.jrmdhn.wiz\"",
