@@ -1,6 +1,6 @@
 {
   "name": "wiz",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A plugin for the Stream Deck to control Wiz bulbs",
   "author": "jelang r. kharisma <jrmdhn@gmail.com>",
   "license": "MIT",
